@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-site-verification" content="N3DxCcjbvKkZjgNPWFzQ8XsKadWy4_JY3n221Uf5jPg" />
+    <title>InpaintPro - AI Watermark Remover</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Lucide Icons for modern SVG icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="glass-header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i data-lucide="eraser"></i>
+                </div>
+                <span>Inpaint<span class="highlight">Pro</span></span>
+            </div>
+            <div class="header-actions">
+                <button id="importBtn" class="btn secondary">
+                    <i data-lucide="upload-cloud"></i> Upload Image
+                </button>
+                <button id="downloadBtn" class="btn primary" disabled>
+                    <i data-lucide="download"></i> Export
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="workspace">
+
+            <!-- Toolbar (Left) -->
+            <aside class="toolbar glass-panel">
+                <div class="tool-group">
+                    <button class="tool-btn active" id="toolBrush" title="Brush Tool">
+                        <i data-lucide="brush"></i>
+                    </button>
+                    <button class="tool-btn" id="toolHand" title="Move/Pan Tool">
+                        <i data-lucide="hand"></i>
+                    </button>
+                    <!-- Future tools can go here: Magic Wand, Rect Marquee -->
+                </div>
+
+                <div class="separator"></div>
+
+                <div class="tool-settings">
+                    <label class="setting-label">Brush Size</label>
+                    <div class="slider-container">
+                        <input type="range" id="brushSize" min="5" max="100" value="30">
+                        <span id="brushSizeVal">30px</span>
+                    </div>
+                </div>
+
+                <div class="separator"></div>
+
+                <div class="action-group">
+                    <button class="tool-btn" id="actionUndo" title="Undo (Ctrl+Z)" disabled>
+                        <i data-lucide="undo-2"></i>
+                    </button>
+                    <button class="tool-btn" id="actionRedo" title="Redo (Ctrl+Y)" disabled>
+                        <i data-lucide="redo-2"></i>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Zoom Controls Overlay -->
+            <div class="zoom-controls glass-panel">
+                <button id="zoomOut" class="icon-btn"><i data-lucide="minus"></i></button>
+                <span id="zoomLevel">100%</span>
+                <button id="zoomIn" class="icon-btn"><i data-lucide="plus"></i></button>
+            </div>
+
+            <!-- Canvas Area (Center) -->
+            <div class="canvas-viewport" id="dropZone">
+                <div class="empty-state" id="emptyState">
+                    <div class="icon-pulse">
+                        <i data-lucide="image-plus" size="48"></i>
+                    </div>
+                    <h3>Drop an image here</h3>
+                    <p>or</p>
+                    <button id="centerUploadBtn" class="btn secondary">Choose File</button>
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                </div>
+
+                <div class="canvas-wrapper" id="canvasWrapper" hidden>
+                    <!-- We use two canvases: one for the image, one for the interface/mask -->
+                    <canvas id="mainCanvas"></canvas>
+                    <canvas id="maskCanvas"></canvas>
+                    <div id="cursorRing" class="cursor-ring"></div>
+                </div>
+
+                <!-- Compare Button Overlay -->
+                <button id="compareBtn" class="compare-fab" hidden title="Hold to compare">
+                    <i data-lucide="eye"></i>
+                </button>
+            </div>
+
+            <!-- Action Bar (Bottom/Right) -->
+            <aside class="actions-panel glass-panel">
+                <div class="status-indicator">
+                    <span id="statusText">Ready</span>
+                    <div class="loader" id="loader" hidden></div>
+                </div>
+                <button id="removeBtn" class="btn magic-btn" disabled>
+                    <i data-lucide="sparkles"></i>
+                    <span>Remove Watermark</span>
+                </button>
+            </aside>
+
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="processor.js"></script>
+    <script src="app.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>
