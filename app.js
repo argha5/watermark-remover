@@ -38,7 +38,7 @@ class App {
         this.image = null;
         this.originalImageData = null;
         this.history = [];
-        this.historyIndex = -1;
+        this.redoStack = [];
 
         // Interaction State
         this.activeTool = 'brush'; // 'brush' or 'hand'
@@ -142,6 +142,7 @@ class App {
         this.dom.compareBtn.addEventListener('mouseleave', () => this.showOriginal(false));
         this.dom.downloadBtn.addEventListener('click', () => this.downloadImage());
         this.dom.undoBtn.addEventListener('click', () => this.undo());
+        this.dom.redoBtn.addEventListener('click', () => this.redo());
     }
 
     setTool(tool) {
@@ -181,6 +182,12 @@ class App {
             const img = new Image();
             img.onload = () => {
                 this.image = img;
+                // Store original for Compare button
+                this.dom.mainCanvas.width = img.width; // Temp sizing for read
+                this.dom.mainCanvas.height = img.height;
+                this.ctx.drawImage(img, 0, 0);
+                this.originalImageData = this.ctx.getImageData(0, 0, img.width, img.height);
+
                 this.renderImage();
                 this.dom.emptyState.hidden = true;
                 this.dom.canvasWrapper.hidden = false;
@@ -189,8 +196,10 @@ class App {
                 this.dom.compareBtn.hidden = false;
 
                 // Reset State
+                // Reset State
                 this.history = [];
-                this.saveState(true);
+                this.redoStack = [];
+                this.updateButtonStates();
                 this.panX = 0;
                 this.panY = 0;
                 this.zoom = 1;
@@ -346,13 +355,26 @@ class App {
     toLocalCoordinates(clientX, clientY) {
         const rect = this.dom.canvasWrapper.getBoundingClientRect();
 
-        // visualX/Y is distance from top-left of the SCALED wrapper
+        // Get the actual rendered size of the wrapper (affected by CSS transform scale)
+        const renderedWidth = rect.width;
+        const renderedHeight = rect.height;
+
+        // Get the intrinsic canvas size (actual canvas pixels)
+        const canvasWidth = this.dom.mainCanvas.width;
+        const canvasHeight = this.dom.mainCanvas.height;
+
+        // Calculate the total scale factor (combines browser zoom and CSS transform zoom)
+        // This accounts for any browser zoom level automatically
+        const scaleX = renderedWidth / canvasWidth;
+        const scaleY = renderedHeight / canvasHeight;
+
+        // Position relative to the wrapper (in screen pixels)
         const visualX = clientX - rect.left;
         const visualY = clientY - rect.top;
 
-        // Divide by zoom to get local pixels
-        const x = visualX / this.zoom;
-        const y = visualY / this.zoom;
+        // Convert to canvas coordinates by dividing by the actual scale
+        const x = visualX / scaleX;
+        const y = visualY / scaleY;
 
         return { x, y };
     }
@@ -372,21 +394,38 @@ class App {
         this.maskCtx.moveTo(local.x, local.y);
     }
 
-    saveState(isInitial = false) {
-        if (isInitial) {
-            this.originalImageData = this.ctx.getImageData(0, 0, this.dom.mainCanvas.width, this.dom.mainCanvas.height);
-        }
+    saveState() {
         this.history.push(this.ctx.getImageData(0, 0, this.dom.mainCanvas.width, this.dom.mainCanvas.height));
         if (this.history.length > 20) this.history.shift();
-        this.dom.undoBtn.disabled = this.history.length === 0;
+        this.redoStack = []; // New action clears redo history
+        this.updateButtonStates();
     }
 
     undo() {
         if (this.history.length > 0) {
+            // Save current state to redo stack
+            this.redoStack.push(this.ctx.getImageData(0, 0, this.dom.mainCanvas.width, this.dom.mainCanvas.height));
+
             const state = this.history.pop();
             this.ctx.putImageData(state, 0, 0);
-            this.dom.undoBtn.disabled = this.history.length === 0;
+            this.updateButtonStates();
         }
+    }
+
+    redo() {
+        if (this.redoStack.length > 0) {
+            // Save current state to history
+            this.history.push(this.ctx.getImageData(0, 0, this.dom.mainCanvas.width, this.dom.mainCanvas.height));
+
+            const state = this.redoStack.pop();
+            this.ctx.putImageData(state, 0, 0);
+            this.updateButtonStates();
+        }
+    }
+
+    updateButtonStates() {
+        this.dom.undoBtn.disabled = this.history.length === 0;
+        this.dom.redoBtn.disabled = this.redoStack.length === 0;
     }
 
     showOriginal(show) {
@@ -414,6 +453,7 @@ class App {
         this.dom.loader.hidden = false;
         this.dom.statusText.innerText = "Processing...";
         this.dom.removeBtn.disabled = true;
+        this.saveState(); // Save state BEFORE processing begins
 
         const width = this.dom.mainCanvas.width;
         const height = this.dom.mainCanvas.height;
@@ -425,7 +465,6 @@ class App {
                 const result = await this.processor.process(imgData, maskData);
                 this.ctx.putImageData(result, 0, 0);
                 this.maskCtx.clearRect(0, 0, width, height);
-                this.saveState();
                 this.dom.statusText.innerText = "Done!";
             } catch (err) {
                 console.error(err);

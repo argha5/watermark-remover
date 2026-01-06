@@ -322,11 +322,16 @@ input[type=range]::-webkit-slider-runnable-track {
 }
 
 .canvas-wrapper {
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
+    /* Removed box-shadow as it might look weird if full size, but keeping per design */
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
     /* No max-width/height here, controlled by JS scaling */
     cursor: none;
     /* We use custom cursor */
+    transform-origin: 0 0;
+    /* Required for correct coordinate calculation */
 }
 
 canvas {
